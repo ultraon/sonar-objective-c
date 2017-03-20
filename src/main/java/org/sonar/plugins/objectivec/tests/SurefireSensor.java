@@ -26,29 +26,30 @@ import org.sonar.api.batch.DependsUpon;
 import org.sonar.api.batch.Sensor;
 import org.sonar.api.batch.SensorContext;
 import org.sonar.api.batch.fs.FileSystem;
-import org.sonar.api.component.ResourcePerspectives;
+import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.config.Settings;
 import org.sonar.api.resources.Project;
+import org.sonar.api.resources.Qualifiers;
+import org.sonar.api.resources.Resource;
 import org.sonar.plugins.objectivec.core.ObjectiveC;
+import org.sonar.plugins.surefire.api.SurefireUtils;
 
 import java.io.File;
 
 public class SurefireSensor implements Sensor {
-
     private static final Logger LOG = LoggerFactory.getLogger(SurefireSensor.class);
-    public static final String REPORT_PATH_KEY = "sonar.junit.reportsPath";
-    public static final String DEFAULT_REPORT_PATH = "sonar-reports/";
+    private static final String REPORT_PATH_KEY = "sonar.junit.reportsPath";
+    private static final String DEFAULT_REPORT_PATH = "sonar-reports/";
 
     private final Settings settings;
     private final FileSystem fileSystem;
-    private final ResourcePerspectives resourcePerspectives;
 
-    public SurefireSensor(final FileSystem fileSystem, final Settings config, final ResourcePerspectives resourcePerspectives) {
+    public SurefireSensor(final FileSystem fileSystem, final Settings config) {
         this.settings = config;
         this.fileSystem = fileSystem;
-        this.resourcePerspectives = resourcePerspectives;
     }
 
+    @SuppressWarnings("unused")
     @DependsUpon
     public Class<?> dependsUponCoverageSensors() {
         return CoverageExtension.class;
@@ -77,13 +78,51 @@ public class SurefireSensor implements Sensor {
         So the implementation here reaches into the project properties and pulls the path out by itself.
      */
 
-        collect(project, context, new File(reportPath()));
+        final File dirBySurefireUtils = SurefireUtils.getReportsDirectory(project);
+        final File dirByPlugin = new File(reportPath());
+        LOG.debug("dirBySurefireUtils: {}, dirByPlugin: {}", dirBySurefireUtils.getAbsolutePath(), dirByPlugin.getAbsolutePath());
+
+        collect(project, context, dirByPlugin);
     }
 
-    protected void collect(Project project, SensorContext context, File reportsDir) {
-        LOG.info("parsing {}", reportsDir);
-        SurefireParser parser = new SurefireParser(project, fileSystem, resourcePerspectives, context);
-        parser.collect(reportsDir);
+    private void collect(Project project, final SensorContext context, File reportsDir) {
+        LOG.info("parsing {}", reportsDir.getAbsolutePath());
+
+//        SurefireParser parser = new SurefireParser(project, fileSystem, resourcePerspectives, context);
+//        parser.collect(reportsDir);
+
+        new AbstractSurefireParser() {
+            @Override
+            protected Resource getUnitTestResource(String classKey) {
+                return getUnitTestResource(classKey, context);
+//                if (!StringUtils.contains(classKey, "$")) {
+//                    // temporary hack waiting for http://jira.codehaus.org/browse/SONAR-1865
+//                    return new JavaFile(classKey, true);
+//                }
+//                return null;
+            }
+
+            private Resource getUnitTestResource(String classname, SensorContext context) {
+
+                String fileName = classname.replace('.', '/') + ".m";
+
+                InputFile inputFile = fileSystem.inputFile(fileSystem.predicates().or(fileSystem.predicates().matchesPathPattern("**/" + fileName),
+                        fileSystem.predicates().matchesPathPattern("**/" + fileName.replace("_", "+"))));
+                if (inputFile == null) {
+                    return null;
+                }
+
+                Resource resource = context.getResource(inputFile);
+
+                if(resource instanceof org.sonar.api.resources.File) {
+                    org.sonar.api.resources.File sonarFile = (org.sonar.api.resources.File) resource;
+                    sonarFile.setQualifier(Qualifiers.UNIT_TEST_FILE);
+                }
+
+                return resource;
+            }
+        }.collect(project, context, reportsDir);
+
     }
 
     @Override
@@ -98,5 +137,4 @@ public class SurefireSensor implements Sensor {
         }
         return reportPath;
     }
-
 }
