@@ -32,7 +32,6 @@ import org.sonar.api.resources.Project;
 import org.sonar.api.resources.Qualifiers;
 import org.sonar.api.resources.Resource;
 import org.sonar.plugins.objectivec.core.ObjectiveC;
-import org.sonar.plugins.surefire.api.SurefireUtils;
 
 import java.io.File;
 
@@ -61,7 +60,6 @@ public class SurefireSensor implements Sensor {
     }
 
     public void analyse(Project project, SensorContext context) {
-
     /*
         GitHub Issue #50
         Formerly we used SurefireUtils.getReportsDirectory(project). It seems that is this one:
@@ -78,28 +76,18 @@ public class SurefireSensor implements Sensor {
         So the implementation here reaches into the project properties and pulls the path out by itself.
      */
 
-        final File dirBySurefireUtils = SurefireUtils.getReportsDirectory(project);
-        final File dirByPlugin = new File(reportPath());
-        LOG.debug("dirBySurefireUtils: {}, dirByPlugin: {}", dirBySurefireUtils.getAbsolutePath(), dirByPlugin.getAbsolutePath());
+        final File reportsDir = new File(reportPath());
+        LOG.debug("reportsDir: {}", reportsDir.getAbsolutePath());
 
-        collect(project, context, dirByPlugin);
+        collect(project, context, reportsDir);
     }
 
     private void collect(Project project, final SensorContext context, File reportsDir) {
         LOG.info("parsing {}", reportsDir.getAbsolutePath());
-
-//        SurefireParser parser = new SurefireParser(project, fileSystem, resourcePerspectives, context);
-//        parser.collect(reportsDir);
-
         new AbstractSurefireParser() {
             @Override
             protected Resource getUnitTestResource(String classKey) {
                 return getUnitTestResource(classKey, context);
-//                if (!StringUtils.contains(classKey, "$")) {
-//                    // temporary hack waiting for http://jira.codehaus.org/browse/SONAR-1865
-//                    return new JavaFile(classKey, true);
-//                }
-//                return null;
             }
 
             private Resource getUnitTestResource(String classname, SensorContext context) {

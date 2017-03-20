@@ -24,7 +24,7 @@
 
     <groupId>org.codehaus.sonar-plugin.objectivec</groupId>
     <artifactId>backelite-sonar-objective-c-plugin</artifactId>
-    <version>0.6.2</version>
+    <version>0.6.5</version>
 
     <packaging>sonar-plugin</packaging>
 
@@ -177,6 +177,16 @@
             <groupId>org.easytesting</groupId>
             <artifactId>fest-assert</artifactId>
             <version>1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>1.7.5</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

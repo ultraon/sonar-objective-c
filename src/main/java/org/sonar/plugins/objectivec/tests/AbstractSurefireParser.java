@@ -20,6 +20,8 @@
 package org.sonar.plugins.objectivec.tests;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.SensorContext;
 import org.sonar.api.measures.CoreMetrics;
 import org.sonar.api.measures.Measure;
@@ -42,6 +44,7 @@ import java.util.Map;
  * @since 2.4
  */
 public abstract class AbstractSurefireParser {
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractSurefireParser.class);
 
     public void collect(Project project, SensorContext context, File reportsDir) {
         File[] xmlFiles = getReports(reportsDir);
@@ -128,7 +131,16 @@ public abstract class AbstractSurefireParser {
 
     private void saveMeasure(SensorContext context, Resource resource, Metric metric, double value) {
         if (!Double.isNaN(value)) {
-            context.saveMeasure(resource, metric, value);
+            final Measure<?> measure = new Measure(metric, value);
+
+            LOG.debug("res: {}, measure: {}", resource, measure);
+            try {
+                context.saveMeasure(resource, measure);
+            } catch (NullPointerException ex) {
+                LOG.error("Got NPE while context.saveMeasure(resource, measure)", ex);
+            } catch (Throwable throwable) {
+                LOG.error("Got Throwable while context.saveMeasure(resource, measure)", throwable);
+            }
         }
     }
 
@@ -137,5 +149,4 @@ public abstract class AbstractSurefireParser {
     }
 
     protected abstract Resource getUnitTestResource(String classKey);
-
 }
