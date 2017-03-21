@@ -123,16 +123,21 @@ function runCommand() {
 ## COMMAND LINE OPTIONS
 vflag=""
 nflag=""
+unittests="on"
 oclint="on"
 fauxpas="on"
 lizard="on"
+sonarscanner=“”
+
 while [ $# -gt 0 ]
 do
     case "$1" in
     -v)	vflag=on;;
     -n) nflag=on;;
-	-nooclint) oclint="";;
+    -nounittests) unittests="";;
+    -nooclint) oclint="";;
     -nofauxpas) fauxpas="";;
+    -usesonarscanner) sonarscanner="on";;
 	--)	shift; break;;
 	-*)
         echo >&2 "Usage: $0 [-v]"
@@ -248,8 +253,8 @@ oclint-xcodebuild # Transform the xcodebuild.log file into a compile_command.jso
 
 
 # Unit tests and coverage
-if [ "$testScheme" = "" ]; then
-	echo 'Skipping tests as no test scheme has been provided!'
+if [ "$testScheme" = "" ] || [ "$unittests" = "" ]; then
+	echo 'Skipping tests!'
 
 	# Put default xml files with no tests and no coverage...
 	echo "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><testsuites name='AllTestUnits'></testsuites>" > sonar-reports/TEST-report.xml
@@ -270,7 +275,7 @@ else
         buildCmd+=(-destination "$destinationSimulator" -destination-timeout 360)
     fi
     "${buildCmd[@]}"  | $XCPRETTY_CMD -t --report junit
-    mv build/reports/junit.xml sonar-reports/TEST-report.xml
+    cp build/reports/junit.xml sonar-reports/TEST-report.xml
 
 	echo -n 'Computing coverage report'
 
@@ -430,8 +435,20 @@ else
 fi
 
 # SonarQube
-echo -n 'Running SonarQube using SonarQube Runner'
-runCommand /dev/stdout sonar-runner
+if [ "$sonarscanner" = "on" ]; then
+    echo -n 'Running SonarQube using SonarQube Scanner'
+    testIsInstalled sonar-scanner
+    runCommand /dev/stdout sonar-scanner
+else
+    echo -n 'Running SonarQube using SonarQube Runner'
+    if hash /dev/stdout sonar-runner 2>/dev/null; then
+        runCommand /dev/stdout sonar-runner
+    else
+    	echo -n 'SonarQube Runner is not installed, try to run SonarQube using SonarQube Scanner'
+    	testIsInstalled sonar-scanner
+        runCommand /dev/stdout sonar-scanner
+    fi
+fi
 
 # Kill progress indicator
 stopProgress
