@@ -38,6 +38,7 @@ import org.sonar.plugins.surefire.data.UnitTestIndex;
 import javax.xml.stream.XMLStreamException;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -55,6 +56,7 @@ public abstract class AbstractSurefireParser {
                 context.saveMeasure(CoreMetrics.TESTS, 0.0);
             }
         } else {
+            LOG.debug("Report files to parse: {}", Arrays.toString(xmlFiles));
             parseFiles(context, xmlFiles);
         }
     }
@@ -82,8 +84,26 @@ public abstract class AbstractSurefireParser {
     private void parseFiles(SensorContext context, File[] reports) {
         UnitTestIndex index = new UnitTestIndex();
         parseFiles(reports, index);
+
+        logParsedReports(index, "Log parsed reports ---------->");
+
         sanitize(index);
+
+        logParsedReports(index, "Log parsed reports after sanitize ---------->");
+
         save(index, context);
+    }
+
+    private void logParsedReports(UnitTestIndex index, String message) {
+        LOG.debug(message);
+        final Map<String, UnitTestClassReport> parsedReports = index.getIndexByClassname();
+        for (String key : parsedReports.keySet()) {
+            final UnitTestClassReport unitTestClassReport = parsedReports.get(key);
+            final String xml = unitTestClassReport.toXml();
+            LOG.debug("Report key: {}", key);
+            LOG.debug("Report xml: {}", xml);
+        }
+
     }
 
     private void parseFiles(File[] reports, UnitTestIndex index) {
@@ -145,7 +165,10 @@ public abstract class AbstractSurefireParser {
     }
 
     private void saveResults(SensorContext context, Resource resource, UnitTestClassReport report) {
-        context.saveMeasure(resource, new Measure(CoreMetrics.TEST_DATA, report.toXml()));
+        final String data = report.toXml();
+        LOG.debug("Trying to save TEST_DATA: {}", data);
+        LOG.debug("For resource: {}", resource);
+        context.saveMeasure(resource, new Measure(CoreMetrics.TEST_DATA, data));
     }
 
     protected abstract Resource getUnitTestResource(String classKey);

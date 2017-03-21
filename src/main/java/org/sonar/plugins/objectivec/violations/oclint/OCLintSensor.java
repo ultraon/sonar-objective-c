@@ -19,11 +19,8 @@
  */
 package org.sonar.plugins.objectivec.violations.oclint;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-
 import org.apache.tools.ant.DirectoryScanner;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.Sensor;
 import org.sonar.api.batch.SensorContext;
@@ -34,9 +31,13 @@ import org.sonar.api.resources.Project;
 import org.sonar.plugins.objectivec.ObjectiveCPlugin;
 import org.sonar.plugins.objectivec.core.ObjectiveC;
 
+import java.io.File;
+
 public final class OCLintSensor implements Sensor {
     public static final String REPORT_PATH_KEY = ObjectiveCPlugin.PROPERTY_PREFIX + ".oclint.report";
     public static final String DEFAULT_REPORT_PATH = "sonar-reports/*oclint.xml";
+
+    private static final Logger LOG = LoggerFactory.getLogger(OCLintSensor.class);
 
     private final Settings conf;
     private final FileSystem fileSystem;
@@ -65,14 +66,18 @@ public final class OCLintSensor implements Sensor {
     private void parseReportIn(final String baseDir, final OCLintParser parser) {
 
         DirectoryScanner scanner = new DirectoryScanner();
-        scanner.setIncludes(new String[]{reportPath()});
+        final String reportPathIncludes = reportPath();
+        LOG.debug("OCLint reportPathIncludes: {}", reportPathIncludes);
+        scanner.setIncludes(new String[]{reportPathIncludes});
         scanner.setBasedir(baseDir);
         scanner.setCaseSensitive(false);
         scanner.scan();
         String[] files = scanner.getIncludedFiles();
 
+
+
         for(String filename : files) {
-            LoggerFactory.getLogger(getClass()).info("Processing OCLint report {}", filename);
+            LOG.info("Processing OCLint report {}", filename);
             parser.parseReport(new File(filename));
         }
     }

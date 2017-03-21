@@ -90,7 +90,7 @@ final class CoberturaReportParser {
                 InputFile inputFile = fileSystem.inputFile(fileSystem.predicates().hasAbsolutePath(file.getAbsolutePath()));
 
                 if (inputFile == null) {
-                    LOGGER.warn("file not included in sonar {}", filePath);
+                    LOGGER.warn("file not included in sonar {}", file.getAbsolutePath());
                     continue;
                 }
 

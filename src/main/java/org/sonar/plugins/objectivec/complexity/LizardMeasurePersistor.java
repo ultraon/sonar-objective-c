@@ -67,7 +67,7 @@ public class LizardMeasurePersistor {
             InputFile inputFile = fileSystem.inputFile(fileSystem.predicates().hasAbsolutePath(file.getAbsolutePath()));
 
             if (inputFile == null) {
-                LOGGER.warn("file not included in sonar {}", entry.getKey());
+                LOGGER.warn("file not included in sonar {}", file.getAbsolutePath());
                 continue;
             }
 

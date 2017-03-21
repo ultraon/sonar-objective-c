@@ -91,26 +91,23 @@ public class SurefireSensor implements Sensor {
             }
 
             private Resource getUnitTestResource(String classname, SensorContext context) {
-
                 String fileName = classname.replace('.', '/') + ".m";
-
+                LOG.debug("Getting input file for classname {}, calculated file {}", classname, fileName);
                 InputFile inputFile = fileSystem.inputFile(fileSystem.predicates().or(fileSystem.predicates().matchesPathPattern("**/" + fileName),
                         fileSystem.predicates().matchesPathPattern("**/" + fileName.replace("_", "+"))));
+                LOG.debug("Result input file {}", inputFile);
                 if (inputFile == null) {
                     return null;
                 }
-
                 Resource resource = context.getResource(inputFile);
-
                 if(resource instanceof org.sonar.api.resources.File) {
                     org.sonar.api.resources.File sonarFile = (org.sonar.api.resources.File) resource;
                     sonarFile.setQualifier(Qualifiers.UNIT_TEST_FILE);
                 }
-
+                LOG.debug("Calculated resource for input file: {}", resource);
                 return resource;
             }
         }.collect(project, context, reportsDir);
-
     }
 
     @Override
